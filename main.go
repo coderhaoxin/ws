@@ -5,6 +5,7 @@ import "github.com/codegangsta/cli"
 import "strings"
 import "fmt"
 import "log"
+import "io"
 import "os"
 
 func main() {
@@ -29,15 +30,37 @@ func main() {
 			os.Exit(1)
 		}
 
+		wl := newWsLiner()
+		defer wl.Close()
+
 		for {
-			var msg = make([]byte, 512)
-			var n int
-			if n, err = ws.Read(msg); err != nil {
-				log.Fatal(err)
+			var msg = make([]byte, 1024*10)
+			if n, e := ws.Read(msg); e != nil {
+				log.Fatal(e)
+			} else {
+				fmt.Printf("i> %s\n", msg[:n])
 			}
-			fmt.Printf("%s\n", msg[:n])
+
+			i := readInput(wl)
+			if i != "" {
+				// send data
+				ws.Write([]byte(i))
+			}
 		}
 	}
 
 	app.Run(os.Args)
+}
+
+func readInput(wl *wsLiner) string {
+	i, e := wl.Prompt()
+	if e != nil {
+		if e == io.EOF {
+			// break
+		}
+		log.Fatal(e)
+		os.Exit(1)
+	}
+
+	return i
 }
