@@ -1,18 +1,21 @@
 package main
 
+import "github.com/mitchellh/colorstring"
 import "golang.org/x/net/websocket"
 import "github.com/codegangsta/cli"
 import "strings"
+import "time"
 import "fmt"
 import "log"
-import "io"
 import "os"
+
+// import "io"
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "ws"
 	app.Author = "haoxin"
-	app.Version = "0.0.1"
+	app.Version = "0.1.0"
 	app.Usage = "💓 WebSocket CLI 💓"
 
 	app.Action = func(c *cli.Context) {
@@ -33,34 +36,43 @@ func main() {
 		wl := newWsLiner()
 		defer wl.Close()
 
-		for {
-			var msg = make([]byte, 1024*10)
-			if n, e := ws.Read(msg); e != nil {
-				log.Fatal(e)
-			} else {
-				fmt.Printf("i> %s\n", msg[:n])
-			}
+		wl.initHistoryFile()
 
-			i := readInput(wl)
-			if i != "" {
-				// send data
-				ws.Write([]byte(i))
+		go func() {
+			for {
+				var msg = make([]byte, 1024*10)
+				if n, e := ws.Read(msg); e != nil {
+					log.Fatal(e)
+				} else {
+					// clear line
+					// io.WriteString(os.Stdout, "\033[2K")
+					colorstring.Printf("[green] i> %s\n", msg[:n])
+					readAndSend(ws, wl)
+				}
+
+				time.Sleep(100 * time.Microsecond)
 			}
+		}()
+
+		go func() {
+			for {
+				readAndSend(ws, wl)
+				time.Sleep(100 * time.Microsecond)
+			}
+		}()
+
+		quit := make(chan bool)
+		if <-quit {
 		}
 	}
 
 	app.Run(os.Args)
 }
 
-func readInput(wl *wsLiner) string {
-	i, e := wl.Prompt()
-	if e != nil {
-		if e == io.EOF {
-			// break
-		}
-		log.Fatal(e)
-		os.Exit(1)
+func readAndSend(ws *websocket.Conn, wl *wsLiner) {
+	i := wl.readInput()
+	if i != "" {
+		// send data
+		ws.Write([]byte(i))
 	}
-
-	return i
 }

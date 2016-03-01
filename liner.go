@@ -1,8 +1,12 @@
 package main
 
+import "github.com/mitchellh/go-homedir"
 import "github.com/peterh/liner"
+import "path/filepath"
 import "fmt"
+import "log"
 import "io"
+import "os"
 
 const (
 	promptDefault = "ws> "
@@ -11,7 +15,6 @@ const (
 type wsLiner struct {
 	*liner.State
 	buffer string
-	depth  int
 }
 
 func newWsLiner() *wsLiner {
@@ -38,11 +41,7 @@ func (wl *wsLiner) Prompt() (string, error) {
 			fmt.Println("(^D to quit)")
 		}
 	} else if e == nil {
-		if wl.buffer != "" {
-			wl.buffer = wl.buffer + "\n" + l
-		} else {
-			wl.buffer = l
-		}
+		wl.buffer = l
 	}
 
 	return wl.buffer, e
@@ -51,4 +50,36 @@ func (wl *wsLiner) Prompt() (string, error) {
 func (wl *wsLiner) Accepted() {
 	wl.State.AppendHistory(wl.buffer)
 	wl.buffer = ""
+}
+
+func (wl *wsLiner) readInput() string {
+	i, e := wl.Prompt()
+	if e != nil {
+		if e == io.EOF {
+			// break
+		}
+		log.Fatal(e)
+		os.Exit(1)
+	}
+
+	return i
+}
+
+func (wl *wsLiner) initHistoryFile() {
+	name, e := homedir.Dir()
+	if e != nil {
+		return
+	}
+
+	name = filepath.Join(name, ".ws_history")
+
+	file, e := os.Create(name)
+	if e != nil {
+		return
+	}
+
+	_, e = wl.WriteHistory(file)
+	if e != nil {
+		fmt.Errorf("init history file error: %s", e)
+	}
 }
