@@ -13,6 +13,7 @@ ws ws://localhost:3000
 
 ### Deps
 
+* [codegangsta/cli](https://github.com/codegangsta/cli)
 * [peterh/liner](https://github.com/peterh/liner)
 
 ### License

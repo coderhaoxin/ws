@@ -1,8 +1,9 @@
 package main
 
-import "github.com/mitchellh/colorstring"
 import "golang.org/x/net/websocket"
 import "github.com/codegangsta/cli"
+
+// import "github.com/fatih/color"
 import "strings"
 import "time"
 import "fmt"
@@ -41,12 +42,14 @@ func main() {
 		go func() {
 			for {
 				var msg = make([]byte, 1024*10)
-				if n, e := ws.Read(msg); e != nil {
+				if _, e := ws.Read(msg); e != nil {
 					log.Fatal(e)
 				} else {
 					// clear line
 					// io.WriteString(os.Stdout, "\033[2K")
-					colorstring.Printf("[green] i> %s\n", msg[:n])
+					// io.WriteString(os.Stdout, "\x1b[0K")
+					// colorstring.Printf("[green] i> %s\n", msg[:n])
+					// fmt.Println(msg[:n])
 					readAndSend(ws, wl)
 				}
 
@@ -71,8 +74,9 @@ func main() {
 
 func readAndSend(ws *websocket.Conn, wl *wsLiner) {
 	i := wl.readInput()
+	fmt.Println(i, "90")
 	if i != "" {
 		// send data
-		ws.Write([]byte(i))
+		// ws.Write([]byte(i))
 	}
 }
